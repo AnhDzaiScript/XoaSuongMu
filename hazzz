@@ -1,0 +1,189 @@
+getgenv().setting = {
+    Fov = 50,
+    Color = Color3.fromRGB(191, 255, 209),
+    LockPlayers = false,
+    LockPlayersBind = Enum.KeyCode.L,
+    resetPlayersBind = Enum.KeyCode.P,
+}
+
+Playersaimbot = nil
+local mouse = game.Players.LocalPlayer:GetMouse()
+local guiservice = game:GetService("GuiService")
+local players = game:GetService("Players")
+local localPlayer = players.LocalPlayer
+local currentCamera = game:GetService("Workspace").CurrentCamera
+local circle = Drawing.new("Circle")
+
+if game:GetService("CoreGui"):FindFirstChild('infoplayers') then 
+    game:GetService("CoreGui"):FindFirstChild('infoplayers'):Destroy()
+end
+
+local infoplayers = Instance.new("ScreenGui")
+local Main = Instance.new("Frame")
+local MainCorner = Instance.new("UICorner")
+local Profile = Instance.new("Frame")
+local ProfileCorner = Instance.new("UICorner")
+local ImageProfile = Instance.new("ImageLabel")
+local ImageProfileCorner = Instance.new("UICorner")
+local HealthPlayers = Instance.new("TextLabel")
+local NamePlayers = Instance.new("TextLabel")
+local loackplayerslabel = Instance.new("TextLabel")
+local Healthbar = Instance.new("Frame")
+local HealthbarCorner = Instance.new("UICorner")
+local Healthgreen = Instance.new("Frame")
+local HealthgreenCorner = Instance.new("UICorner")
+
+infoplayers.Name = "infoplayers"
+infoplayers.Parent = game:GetService("CoreGui")
+infoplayers.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+Main.Name = "Main"
+Main.Parent = infoplayers
+Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Main.Position = UDim2.new(0.01, 0, 0.3, 0)
+Main.Size = UDim2.new(0, 0, 0, 0)
+MainCorner.Name = "MainCorner"
+MainCorner.Parent = Main
+
+Profile.Name = "Profile"
+Profile.Parent = Main
+Profile.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Profile.Position = UDim2.new(0.057, 0, 0.149, 0)
+Profile.Size = UDim2.new(0, 0, 0, 0)
+ProfileCorner.CornerRadius = UDim.new(0, 100)
+ProfileCorner.Parent = Profile
+
+ImageProfile.Name = "ImageProfile"
+ImageProfile.Parent = Profile
+ImageProfile.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ImageProfile.Position = UDim2.new(0, 1, 0, 1)
+ImageProfile.Size = UDim2.new(0, 0, 0, 0)
+ImageProfile.Image = ""
+ImageProfileCorner.CornerRadius = UDim.new(0, 100)
+ImageProfileCorner.Parent = ImageProfile
+
+function updateCircle(Fov, colorCircle)
+    if circle.__OBJECT_EXISTS then
+        circle.Transparency = 1
+        circle.Visible = true
+        circle.Thickness = 2
+        circle.Color = colorCircle
+        circle.NumSides = 100
+        circle.Radius = (Fov * 6) / 2
+        circle.Filled = false
+        circle.Position = Vector2.new(mouse.X, mouse.Y + guiservice:GetGuiInset().Y)
+    end
+end
+
+spawn(function()
+    game:GetService("RunService").RenderStepped:Connect(function()
+        pcall(function()
+            updateCircle(getgenv().setting['Fov'], getgenv().setting['Color'])
+        end)
+    end)
+end)
+
+spawn(function()
+    pcall(function()
+        while task.wait() do
+            for _, v in pairs(players:GetPlayers()) do
+                if v ~= localPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                    local pos = currentCamera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+                    local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                    if magnitude < (getgenv().setting['Fov'] * 6 - 8) / 2 then
+                        if (v.Character.HumanoidRootPart.Position - localPlayer.Character.HumanoidRootPart.Position).Magnitude <= 1000 then
+                            if not getgenv().setting['LockPlayers'] then
+                                Playersaimbot = v.Name
+                                PlayersPosition = v.Character.HumanoidRootPart.Position
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end)
+
+spawn(function()
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if Playersaimbot then
+            for _, v in pairs(players:GetChildren()) do
+                if v.Name == Playersaimbot and v.Character then
+                    NamePlayers.Text = " "..v.Name
+                    HealthPlayers.Text = " "..math.floor(v.Character.Humanoid.Health).."/"..v.Character.Humanoid.MaxHealth
+                    local hp = v.Character.Humanoid.Health / v.Character.Humanoid.MaxHealth
+                    pcall(function()
+                        Healthgreen:TweenSize(UDim2.new(hp, 0, 0, 8), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15)
+                    end)
+                    ImageProfile.Image = players:GetUserThumbnailAsync(v.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+                end
+            end
+        end
+    end)
+end)
+
+game:GetService("UserInputService").InputBegan:Connect(function(io, p)
+    if io.KeyCode == getgenv().setting['LockPlayersBind'] then
+        getgenv().setting['LockPlayers'] = not getgenv().setting['LockPlayers']
+        loackplayerslabel.Text = getgenv().setting['LockPlayers'] and "Lock Players | ON" or "Lock Players | OFF"
+    end
+    if io.KeyCode == getgenv().setting['resetPlayersBind'] then
+        Playersaimbot = nil
+        PlayersPosition = nil
+        ImageProfile.Image = ''
+        NamePlayers.Text = "."
+        HealthPlayers.Text = "."
+    end
+end)
+
+spawn(function()
+    while task.wait() do
+        for _, v in pairs(players:GetChildren()) do
+            if v.Name == Playersaimbot and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                PlayersPosition = v.Character.HumanoidRootPart.Position
+            end
+        end
+    end
+end)
+
+spawn(function()
+    local mt = getrawmetatable(game)
+    local old = mt.__namecall
+    setreadonly(mt, false)
+    mt.__namecall = newcclosure(function(...)
+        local method = getnamecallmethod()
+        local args = {...}
+        if tostring(method) == "FireServer" and tostring(args[1]) == "RemoteEvent" then
+            if tostring(args[2]) ~= "true" and tostring(args[2]) ~= "false" and Playersaimbot then
+                args[2] = PlayersPosition
+                return old(unpack(args))
+            end
+        end
+        return old(...)
+    end)
+end)
+
+mouse.Button1Down:Connect(function()
+    pcall(function()
+        if Playersaimbot and players:FindFirstChild(Playersaimbot) then
+            local target = players[Playersaimbot]
+            if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                local tool = localPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then
+                    -- Gun
+                    if tool:FindFirstChild("RemoteFunctionShoot") then
+                        local args = {
+                            [1] = PlayersPosition,
+                            [2] = target.Character.HumanoidRootPart
+                        }
+                        tool.RemoteFunctionShoot:InvokeServer(unpack(args))
+                    end
+                    -- Melee / Sword
+                    if tool:FindFirstChild("RemoteEvent") then
+                        tool.RemoteEvent:FireServer(PlayersPosition)
+                    end
+                end
+            end
+        end
+    end)
+end)
