@@ -1,0 +1,37 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local InputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local HighlightFolder = Instance.new("Folder")
+HighlightFolder.Name = "Highlight_Folder"
+HighlightFolder.Parent = game.CoreGui
+
+local function HighlightSelf(player)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = player.Name
+    highlight.FillColor = Color3.fromRGB(255, 255, 255)
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillTransparency = 0.7
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+    highlight.Parent = HighlightFolder
+
+    if player.Character then
+        highlight.Adornee = player.Character
+    end
+
+    player.CharacterAdded:Connect(function(char)
+        highlight.Adornee = char
+    end)
+end
+
+HighlightSelf(LocalPlayer)
+
+-- Tắt/bật render khi focus cửa sổ
+InputService.WindowFocused:Connect(function()
+    RunService:Set3dRenderingEnabled(true)
+end)
+
+InputService.WindowFocusReleased:Connect(function()
+    RunService:Set3dRenderingEnabled(false)
+end)
